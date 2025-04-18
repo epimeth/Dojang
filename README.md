@@ -1,2 +1,2 @@
 # Dojang
-Didn't portal and management
+Dojang portal and management
