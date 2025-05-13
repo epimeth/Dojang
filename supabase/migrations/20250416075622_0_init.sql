@@ -44,15 +44,6 @@ create table student_parents (
   primary key (student_id, parent_user_id)
 );
 
-create table belt_awards (
-  id uuid primary key default gen_random_uuid(),
-  student_id uuid references students(id) on delete cascade,
-  event_id uuid references events(id) on delete set null,
-  belt_level text not null,
-  awarded_on date not null,
-  notes text
-);
-
 -- Schedule & Calendar
 
 create table class_templates (
@@ -93,4 +84,13 @@ create table attendance_intentions (
   marked_by_user_id uuid references users(id) on delete set null,
   timestamp timestamp with time zone default now(),
   primary key (class_template_id, date, student_id)
+);
+
+create table belt_awards (
+  id uuid primary key default gen_random_uuid(),
+  student_id uuid references students(id) on delete cascade,
+  event_id uuid references events(id) on delete set null,
+  belt_level text not null,
+  awarded_on date not null,
+  notes text
 );
