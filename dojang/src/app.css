@@ -1,0 +1,26 @@
+:root {
+  --bg-primary: #f5e9d0;
+  --bg-secondary: #f9f1e2;
+  --bg-card: #fffcf5;
+  --accent-red: #c85a45;
+  --accent-green: #5a8d73;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --border-color: #e6d7b8;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+button {
+  font: inherit;
+}
