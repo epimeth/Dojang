@@ -12,7 +12,6 @@
   ];
 </script>
 
-</script>
 <h1>Welcome to Supabase!</h1>
 <ul>
   {#each colors as color}
