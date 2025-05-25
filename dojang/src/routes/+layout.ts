@@ -1,6 +1,7 @@
 import { createBrowserClient, createServerClient, isBrowser } from '@supabase/ssr'
 import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public'
 import type { LayoutLoad } from './$types'
+import { studentsService } from '$lib/services/students';
 
 export const load: LayoutLoad = async ({ data, depends, fetch }) => {
   /**
@@ -25,6 +26,9 @@ export const load: LayoutLoad = async ({ data, depends, fetch }) => {
           },
         },
       })
+
+  // Initialize services that require SvelteKit's fetch
+  studentsService.init(fetch);
 
   /**
    * It's fine to use `getSession` here, because on the client, `getSession` is

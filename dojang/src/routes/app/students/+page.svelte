@@ -1,32 +1,74 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount }  from 'svelte'; // onMount for feather can remain
   import feather from 'feather-icons';
-  import type { Student, StudentFilters } from '$lib/types/student';
-  import { studentsService } from '$lib/services/students';
+  import type { StudentFilters } from '$lib/types/student'; // Student and BeltLevel types come via `data`
+  import StudentList from '$lib/components/students/StudentList.svelte';
+  import { page, navigating } from '$app/stores';
+  import { goto } from '$app/navigation';
   
-  let students = $state<Student[]>([]);
-  let filters = $state<StudentFilters>({});
-  let loading = $state(true);
-  let error = $state<string | null>(null);
+  // Data is now passed by the `load` function in +page.ts and accessed via $props()
+  let { data } = $props();
 
-  async function loadStudents() {
-    loading = true;
-    error = null;
-    try {
-      students = await studentsService.getStudents(filters);
-    } catch (err) {
-      error = err instanceof Error ? err.message : 'An error occurred';
-    } finally {
-      loading = false;
+  // Local reactive state for filter inputs
+  // Initialize from URL parameters via $page store for direct access or deep linking
+  let searchFilter = $state($page.url.searchParams.get('search') || '');
+  let beltFilter = $state($page.url.searchParams.get('belt') || undefined);
+
+  // ID for "Team Tiger" from seed.sql
+  const TEAM_TIGER_ID = 'bba70154-7033-406a-801e-d55081b8f0ad';
+
+  // Effect to update icons when data changes and DOM updates
+  $effect.pre(() => {
+    if (typeof feather !== 'undefined') {
+      feather.replace();
     }
+  });
+
+  // Utility functions remain in the component as they are presentation-related
+  function calculateAge(dateOfBirth: string | null): string {
+    if (!dateOfBirth) return 'N/A';
+    const birthDate = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age >= 0 ? `${age} years` : 'N/A';
   }
 
-  // Watch for filter changes and reload students
+  function getTextColorForBackground(hexColor: string | undefined | null): string {
+    if (!hexColor) return '#000000'; // Default to black for undefined/null colors
+    const r = parseInt(hexColor.slice(1, 3), 16);
+    const g = parseInt(hexColor.slice(3, 5), 16);
+    const b = parseInt(hexColor.slice(5, 7), 16);
+    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+    return yiq >= 128 ? '#000000' : '#FFFFFF';
+  }
+
+  // Watch for local filter state changes and update URL to trigger `load` function
   $effect(() => {
-    loadStudents();
+    const newParams = new URLSearchParams();
+    if (searchFilter) {
+      newParams.set('search', searchFilter);
+    }
+    if (beltFilter) {
+      newParams.set('belt', beltFilter);
+    }
+    
+    const newQueryString = newParams.toString();
+    // Only navigate if the query string has actually changed
+    if (newQueryString !== $page.url.searchParams.toString()) {
+      goto(`?${newQueryString}`, { 
+        keepFocus: true, 
+        replaceState: true, // Avoids polluting browser history with filter changes
+        noScroll: true 
+      });
+    }
   });
 
   onMount(() => {
+    // Initial feather replacement for any static icons
     if (typeof feather !== 'undefined') {
       feather.replace();
     }
@@ -40,69 +82,26 @@
       <input
         type="text"
         placeholder="Search students..."
-        bind:value={filters.search}
+        bind:value={searchFilter}
       />
-      <select bind:value={filters.belt}>
-        <option value="">All Belts</option>
-        <!-- Add belt options here -->
+      <select bind:value={beltFilter} aria-label="Filter by belt">
+        <option value={undefined}>All Belts</option>
+        {#each data.allBelts as belt (belt.id)}
+          <option value={belt.id}>{belt.name}</option>
+        {/each}
       </select>
     </div>
   </header>
 
-  {#if error}
-    <div class="error" role="alert">{error}</div>
-  {/if}
+  <StudentList
+    students={data.students}
+    loading={!!$navigating}
+    error={data.error}
+    {TEAM_TIGER_ID}
+    {calculateAge}
+    {getTextColorForBackground}
+  />
 
-  {#if loading}
-    <div class="loading" role="status" aria-live="polite">Loading students...</div>
-  {:else}
-    <div class="students-grid" role="grid">
-      {#each students as student (student.id)}
-        <div class="student-card" role="gridcell">
-          <div class="student-header">
-            {#if student.team_tiger}
-              <span class="team-tiger-badge">
-                <i data-feather="award" aria-hidden="true"></i>
-                Team Tiger
-              </span>
-            {/if}
-            <h3>{student.full_name}</h3>
-          </div>
-          
-          <div 
-            class="belt-level" 
-            style="--belt-color: {student.current_belt.color}"
-            aria-label="Belt level: {student.current_belt.name}"
-          >
-            {student.current_belt.name}
-          </div>
-          
-          <div class="student-details">
-            <span class="age">
-              <i data-feather="calendar" aria-hidden="true"></i>
-              {student.date_of_birth}
-            </span>
-            
-            {#if student.last_class_attended}
-              <span class="last-class">
-                <i data-feather="clock" aria-hidden="true"></i>
-                Last class: {student.last_class_attended}
-              </span>
-            {/if}
-          </div>
-          
-          <div class="actions">
-            <button 
-              class="action-btn"
-              aria-label="More actions for {student.full_name}"
-            >
-              <i data-feather="more-vertical" aria-hidden="true"></i>
-            </button>
-          </div>
-        </div>
-      {/each}
-    </div>
-  {/if}
 </div>
 
 <style>
@@ -120,18 +119,7 @@
     margin-top: 1rem;
   }
 
-  .students-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
-  }
-
-  .student-card {
-    background: var(--bg-card);
-    border-radius: 8px;
-    padding: 1rem;
-    position: relative;
-  }
+  /* Styles for .error and .loading can remain here if they are page-level */
 
   .team-tiger-badge {
     background: var(--accent-red);
@@ -144,12 +132,24 @@
     gap: 0.5rem;
   }
 
+  .student-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
   .belt-level {
-    background: var(--belt-color);
-    color: white;
     padding: 0.5rem;
     border-radius: 4px;
     margin: 0.5rem 0;
+    text-align: center;
+    font-weight: bold;
+    border: 1px solid rgba(0,0,0,0.1); /* Subtle border for light belts */
+  }
+  .belt-level-none {
+    background-color: var(--bg-subtle, #f0f0f0);
+    color: var(--text-secondary, #555);
   }
 
   .student-details {
@@ -157,6 +157,13 @@
     flex-direction: column;
     gap: 0.5rem;
     color: var(--text-secondary);
+    font-size: 0.875rem;
+  }
+
+  .student-details span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
   .actions {

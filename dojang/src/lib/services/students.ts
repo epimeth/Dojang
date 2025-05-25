@@ -1,7 +1,18 @@
 import type { Student, StudentFilters } from '$lib/types/student';
+import { EnsureFetchInitialized, type SvelteKitFetch, type FetchInitializable } from '$lib/utils/decorators';
 
-class StudentsService {
+@EnsureFetchInitialized
+class StudentsService implements FetchInitializable {
+  private _fetch!: SvelteKitFetch; // Will be initialized by init()
   private baseUrl = '/api/students';
+
+  public init(fetchFn: SvelteKitFetch): void {
+    this._fetch = fetchFn;
+  }
+
+  public _isFetchInitialized(): boolean {
+    return !!this._fetch;
+  }
 
   async getStudents(filters?: StudentFilters): Promise<Student[]> {
     const params = new URLSearchParams();
@@ -9,7 +20,7 @@ class StudentsService {
     if (filters?.belt) params.set('belt', filters.belt.toString());
 
     try {
-      const res = await fetch(`${this.baseUrl}?${params}`);
+      const res = await this._fetch(`${this.baseUrl}?${params}`);
       if (!res.ok) {
         throw new Error('Failed to fetch students');
       }
@@ -22,7 +33,7 @@ class StudentsService {
 
   async getStudent(id: string): Promise<Student> {
     try {
-      const res = await fetch(`${this.baseUrl}/${id}`);
+      const res = await this._fetch(`${this.baseUrl}/${id}`);
       if (!res.ok) {
         throw new Error('Failed to fetch student');
       }
@@ -35,7 +46,7 @@ class StudentsService {
 
   async createStudent(student: Omit<Student, 'id'>): Promise<Student> {
     try {
-      const res = await fetch(this.baseUrl, {
+      const res = await this._fetch(this.baseUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(student)
@@ -52,7 +63,7 @@ class StudentsService {
 
   async updateStudent(id: string, student: Partial<Student>): Promise<Student> {
     try {
-      const res = await fetch(`${this.baseUrl}/${id}`, {
+      const res = await this._fetch(`${this.baseUrl}/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(student)
@@ -69,7 +80,7 @@ class StudentsService {
 
   async deleteStudent(id: string): Promise<void> {
     try {
-      const res = await fetch(`${this.baseUrl}/${id}`, {
+      const res = await this._fetch(`${this.baseUrl}/${id}`, {
         method: 'DELETE'
       });
       if (!res.ok) {

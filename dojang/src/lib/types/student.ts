@@ -58,6 +58,6 @@ export type Student = {
 
 export type StudentFilters = {
   search?: string;
-  belt?: number;
+  belt?: string;
   ageGroup?: string;
 };
