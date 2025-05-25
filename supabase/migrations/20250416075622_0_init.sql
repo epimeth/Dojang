@@ -17,39 +17,66 @@ create table academies (
 
 create table locations (
   id uuid primary key default gen_random_uuid(),
-  organization_id uuid references academies(id) on delete cascade,
+  academy_id uuid references academies(id) on delete cascade,
   name text not null,
   address text
 );
 
-create table user_organization_roles (
+create table user_academy_roles (
   user_id uuid references users(id) on delete cascade,
-  organization_id uuid references academies(id) on delete cascade,
+  academy_id uuid references academies(id) on delete cascade,
   roles integer not null,
-  primary key (user_id, organization_id)
+  primary key (user_id, academy_id)
 );
 
 -- Student Management
 
 create table students (
   id uuid primary key default gen_random_uuid(),
-  organization_id uuid references academies(id) on delete cascade,
+  academy_id uuid references academies(id) on delete cascade not null,
   full_name text not null,
-  date_of_birth date
+  date_of_birth date,
+  email text,
+  phone_number text,
+  address text,
+  emergency_contact_name text,
+  emergency_contact_phone text,
+  joined_at date default current_date,
+  status text not null default 'active' check (status in ('active', 'inactive', 'trial', 'on_hold', 'graduated')),
+  profile_image_url text,
+  notes text,
+  created_at timestamp with time zone default now()
 );
 
-create table student_parents (
+
+create table student_managers (
   student_id uuid references students(id) on delete cascade,
-  parent_user_id uuid references users(id) on delete cascade,
-  primary key (student_id, parent_user_id)
+  manager_id uuid references users(id) on delete set null,
+  primary key (student_id, manager_id)
+);
+
+-- Student Teams
+create table teams (
+  id uuid primary key default gen_random_uuid(),
+  academy_id uuid references academies(id) on delete cascade not null,
+  name text not null,
+  description text,
+  created_at timestamp with time zone default now()
+);
+
+create table team_students (
+  team_id uuid references teams(id) on delete cascade,
+  student_id uuid references students(id) on delete cascade,
+  joined_at date default current_date,
+  primary key (team_id, student_id)
 );
 
 -- Schedule & Calendar
 
 create table class_templates (
   id uuid primary key default gen_random_uuid(),
-  organization_id uuid references academies(id) on delete cascade,
-  location_id uuid references locations(id) on delete cascade,
+  academy_id uuid references academies(id) on delete cascade,
+  location_id uuid references locations(id) on delete cascade, -- Assuming locations are tied to an academy, this might need academy_id too or be fine if location_id implies academy_id
   name text not null,
   weekday smallint check (weekday between 0 and 6),
   start_time time,
@@ -60,7 +87,7 @@ create table class_templates (
 
 create table events (
   id uuid primary key default gen_random_uuid(),
-  organization_id uuid references academies(id) on delete cascade,
+  academy_id uuid references academies(id) on delete cascade,
   location_id uuid references locations(id) on delete set null,
   title text not null,
   description text,
@@ -86,11 +113,22 @@ create table attendance_intentions (
   primary key (class_template_id, date, student_id)
 );
 
+create table belts (
+  id serial primary key, -- Using serial for auto-incrementing integer ID
+  name text not null unique,
+  color text not null, -- Hex color code
+  rank smallint not null unique, -- For ordering
+  b64svg text -- For storing base64 encoded SVG for the belt
+);
+
 create table belt_awards (
   id uuid primary key default gen_random_uuid(),
   student_id uuid references students(id) on delete cascade,
   event_id uuid references events(id) on delete set null,
-  belt_level text not null,
+  belt_id integer references belts(id) on delete set null,
   awarded_on date not null,
   notes text
 );
+
+-- Note: You might want to add an index on belt_awards(belt_id)
+-- and on belts(rank) for performance if these tables grow large.
