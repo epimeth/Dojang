@@ -1,25 +1,44 @@
 <script lang="ts">
-  import { page } from '$app/stores';
-  
-  const navItems = [
-    { icon: 'home', label: 'Dashboard', href: '/' },
-    { icon: 'users', label: 'Students', href: '/students' },
-    { icon: 'calendar', label: 'Schedule', href: '/schedule' },
-    { icon: 'award', label: 'Events', href: '/events' },
-    { icon: 'clipboard', label: 'Belt Tests', href: '/belt-tests' },
-    { icon: 'check-square', label: 'Attendance', href: '/attendance' },
-    { icon: 'settings', label: 'Settings', href: '/settings' }
-  ];
+  import { page } from '$app/state';
+  import { onMount } from 'svelte';
+  import feather from 'feather-icons';
+
+  type NavItem = {
+    icon: string;
+    label: string;
+    href: string;
+  };
+
+  let navItems = $state<NavItem[]>([
+    { icon: 'home', label: 'Dashboard', href: '/app' },
+    { icon: 'users', label: 'Students', href: '/app/students' },
+    { icon: 'calendar', label: 'Schedule', href: '/app/schedule' },
+    { icon: 'award', label: 'Events', href: '/app/events' },
+    { icon: 'clipboard', label: 'Belt Tests', href: '/app/belt-tests' },
+    { icon: 'check-square', label: 'Attendance', href: '/app/attendance' },
+    { icon: 'settings', label: 'Settings', href: '/app/settings' }
+  ]);
+
+  // Derive active state based on current path
+  let isActive = $derived((href: string) => page.url.pathname === href);
+
+  onMount(() => {
+    if (typeof feather !== 'undefined') {
+      feather.replace();
+    }
+  });
+
 </script>
 
 <aside class="sidebar">
   {#each navItems as { icon, label, href }}
     <a 
-      href={href}
+      {href}
       class="nav-item"
-      class:active={$page.url.pathname === href}
+      class:active={isActive(href)}
+      role="menuitem"
     >
-      <i data-feather={icon} class="nav-icon"></i>
+      <i data-feather={icon} class="nav-icon" aria-hidden="true"></i>
       <span>{label}</span>
     </a>
   {/each}

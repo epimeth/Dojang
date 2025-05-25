@@ -6,8 +6,8 @@
 
 <header>
   <div class="logo">
-    <img src="/logo.png" class="logo-icon" alt="Dojang Platform Logo">
-    <span>Dojang Platform</span>
+    <img src="/img/dojang.webp" class="logo-icon" alt="Dojang">
+    <img src="/img/AcademyManagement.webp" class="logo-icon" alt="Academy Management">
   </div>
   
   <button class="academy-select">
