@@ -1,5 +1,5 @@
 import type { PageLoad } from './$types';
-import type { Student, StudentFilters, BeltLevel } from '$lib/types/student';
+import type { StudentFilters } from '$lib/types/student';
 import { studentsService } from '$lib/services/students';
 import { beltsService } from '$lib/services/belts';
 

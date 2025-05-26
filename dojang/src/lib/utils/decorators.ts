@@ -18,15 +18,15 @@ export interface FetchInitializable {
  * (except 'init' and '_isFetchInitialized' and 'constructor') is called.
  * It iterates over the prototype methods and wraps them.
  */
-export function EnsureFetchInitialized<T extends { new (...args: any[]): FetchInitializable }>(constructor: T) {
+export function EnsureFetchInitialized<T extends { new (...args: unknown[]): FetchInitializable }>(constructor: T) {
   const prototype = constructor.prototype;
   const methodNames = Object.getOwnPropertyNames(prototype)
     .filter(name => name !== 'constructor' && name !== 'init' && name !== '_isFetchInitialized' && typeof prototype[name] === 'function');
 
   methodNames.forEach(methodName => {
     const originalMethod = prototype[methodName];
-    prototype[methodName] = function (...args: any[]) {
-      if (!this._isFetchInitialized()) {
+    prototype[methodName] = function (this: FetchInitializable, ...args: unknown[]) {
+      if (!this._isFetchInitialized()) { // 'this' is now correctly typed as FetchInitializable
         throw new Error(
           `${constructor.name} is not initialized with fetch. Call .init(fetch) first. Attempted to call '${methodName}'.`
         );
